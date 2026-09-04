@@ -16,27 +16,63 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle b){ super.onCreate(b); db=new DB(this); prefs=getSharedPreferences("cfg",MODE_PRIVATE); driverId=prefs.getLong("driver",0);vehicleId=prefs.getLong("vehicle",0); build(); }
     TextView tv(String s,int sp,boolean bold){ TextView v=new TextView(this);v.setText(s);v.setTextSize(sp);v.setTextColor(dark);v.setPadding(12,8,12,8);if(bold)v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return v; }
-    Button btn(String s){ Button b=new Button(this);b.setText(s);b.setTextSize(17);b.setAllCaps(false);b.setMinHeight(58);return b; }
+    Button btn(String s){
+        Button b=new Button(this);
+        b.setText(s);
+        b.setTextSize(17);
+        b.setTextColor(dark);
+        b.setAllCaps(false);
+        b.setMinHeight(58);
+        b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        return b;
+    }
     void build(){
         ScrollView sc=new ScrollView(this); root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(14,14,14,20);sc.addView(root);setContentView(sc);
         TextView title=tv("🚕 TAXI CAJA",24,true); title.setTextColor(Color.WHITE);title.setBackgroundColor(dark);title.setGravity(Gravity.CENTER);title.setPadding(10,18,10,18);root.addView(title);
         identityView=tv("",15,true);identityView.setGravity(Gravity.CENTER);root.addView(identityView);updateIdentity();
         totalsView=tv("",21,true);totalsView.setGravity(Gravity.CENTER);totalsView.setBackgroundColor(gray);totalsView.setPadding(10,16,10,16);root.addView(totalsView);refreshTotals();
-        amountView=tv("$ 0",36,true);amountView.setGravity(Gravity.END);amountView.setBackgroundColor(Color.WHITE);amountView.setPadding(12,18,12,18);root.addView(amountView);
+        LinearLayout amountRow=new LinearLayout(this);amountRow.setOrientation(LinearLayout.HORIZONTAL);
+        amountView=tv("$ 0",36,true);amountView.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);amountView.setBackgroundColor(Color.WHITE);amountView.setPadding(12,18,12,18);amountRow.addView(amountView,new LinearLayout.LayoutParams(0,82,1));
+        Button back=btn("⌫");back.setTextSize(26);back.setContentDescription("Borrar último dígito");back.setOnClickListener(v->backspace());amountRow.addView(back,new LinearLayout.LayoutParams(86,82));root.addView(amountRow);
 
-        LinearLayout quick=new LinearLayout(this);quick.setOrientation(LinearLayout.HORIZONTAL);int[] q={prefs.getInt("q1",2000),prefs.getInt("q2",3000),prefs.getInt("q3",5000)};for(int n:q){Button x=btn("$"+fmt(n));x.setOnClickListener(v->{amount=String.valueOf(n);showAmount();});quick.addView(x,new LinearLayout.LayoutParams(0,-2,1));}root.addView(quick);
-        String[][] keys={{"7","8","9"},{"4","5","6"},{"1","2","3"},{"C","0","000"}};for(String[] row:keys){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.HORIZONTAL);for(String k:row){Button x=btn(k);x.setTextSize(22);x.setOnClickListener(v->key(k));l.addView(x,new LinearLayout.LayoutParams(0,68,1));}root.addView(l);}
+        LinearLayout quick=new LinearLayout(this);quick.setOrientation(LinearLayout.HORIZONTAL);int[] q={prefs.getInt("q1",2000),prefs.getInt("q2",3000),prefs.getInt("q3",5000)};for(int n:q){Button x=btn("$"+fmt(n));x.setTextSize(16);x.setOnClickListener(v->{amount=String.valueOf(n);showAmount();});quick.addView(x,new LinearLayout.LayoutParams(0,62,1));}root.addView(quick);
+        String[][] keys={{"7","8","9"},{"4","5","6"},{"1","2","3"},{"C","0","000"}};for(String[] row:keys){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.HORIZONTAL);for(String k:row){Button x=btn(k);x.setTextSize(28);x.setTextColor(Color.BLACK);x.setGravity(Gravity.CENTER);x.setOnClickListener(v->key(k));l.addView(x,new LinearLayout.LayoutParams(0,72,1));}root.addView(l);}
         Button in=btn("+ INGRESAR");in.setTextSize(22);in.setTextColor(Color.WHITE);in.setBackgroundColor(green);in.setOnClickListener(v->addIncome());root.addView(in,new LinearLayout.LayoutParams(-1,74));
         Button out=btn("− REGISTRAR EGRESO");out.setTextColor(Color.WHITE);out.setBackgroundColor(red);out.setOnClickListener(v->expenseDialog());root.addView(out,new LinearLayout.LayoutParams(-1,66));
 
         LinearLayout nav=new LinearLayout(this);nav.setOrientation(LinearLayout.HORIZONTAL);String[] ns={"Historial","Informes","Turno","Mantenimiento","Config."};for(String n:ns){Button x=btn(n);x.setTextSize(12);x.setOnClickListener(v->nav(n));nav.addView(x,new LinearLayout.LayoutParams(0,65,1));}root.addView(nav);
     }
-    void key(String k){if(k.equals("C")) amount=""; else if(amount.length()<8) amount+=k;showAmount();}
+    void key(String k){
+        if(k.equals("C")) amount="";
+        else if(amount.length()<8){
+            if(amount.isEmpty() && k.equals("000")) return;
+            amount+=k;
+        }
+        showAmount();
+    }
+    void backspace(){ if(!amount.isEmpty()) amount=amount.substring(0,amount.length()-1); showAmount(); }
     int val(){try{return Integer.parseInt(amount);}catch(Exception e){return 0;}}
     void showAmount(){amountView.setText("$ "+fmt(val()));}
     String fmt(int n){return NumberFormat.getIntegerInstance(new Locale("es","CL")).format(n);}
-    void addIncome(){int n=val();if(n<=0){toast("Ingresa un monto");return;}if(driverId==0||vehicleId==0){toast("Primero selecciona conductor y móvil en Configuración");return;} long id=db.addMovement("IN",n,"Carrera","Ingreso",driverId,vehicleId);amount="";showAmount();refreshTotals(); snackbarUndo(id,n);}
-    void snackbarUndo(long id,int n){ final Toast t=Toast.makeText(this,"✓ Ingreso $"+fmt(n)+" registrado",Toast.LENGTH_SHORT);t.show(); new AlertDialog.Builder(this).setMessage("Ingreso $"+fmt(n)+" registrado correctamente.").setNegativeButton("DESHACER",(d,w)->{db.deleteMovement(id);refreshTotals();}).setPositiveButton("OK",null).show(); }
+    void addIncome(){
+        int n=val();
+        if(n<=0){toast("Ingresa un monto");return;}
+        if(driverId==0||vehicleId==0){toast("Primero selecciona conductor y móvil en Configuración");return;}
+        long id=db.addMovement("IN",n,"Carrera","Ingreso",driverId,vehicleId);
+        amount="";
+        showAmount();
+        refreshTotals();
+        showUndoBar(id,n);
+    }
+    void showUndoBar(long id,int n){
+        LinearLayout bar=new LinearLayout(this);bar.setOrientation(LinearLayout.HORIZONTAL);bar.setGravity(Gravity.CENTER_VERTICAL);bar.setPadding(14,8,8,8);bar.setBackgroundColor(Color.rgb(229,231,235));
+        TextView msg=tv("✓ $"+fmt(n)+" registrado",16,true);bar.addView(msg,new LinearLayout.LayoutParams(0,58,1));
+        Button undo=btn("DESHACER");undo.setTextSize(13);bar.addView(undo,new LinearLayout.LayoutParams(120,58));
+        root.addView(bar,Math.min(4,root.getChildCount()));
+        final boolean[] active={true};
+        undo.setOnClickListener(v->{if(active[0]){active[0]=false;db.deleteMovement(id);refreshTotals();root.removeView(bar);toast("Ingreso eliminado");}});
+        new Handler(Looper.getMainLooper()).postDelayed(()->{if(active[0]){active[0]=false;root.removeView(bar);}},4000);
+    }
     void expenseDialog(){ LinearLayout l=form(); EditText monto=field("Monto",2);monto.setText(amount); EditText desc=field("Descripción (ej. combustible, peaje)",1); Spinner cat=new Spinner(this);String[] cats={"Combustible","Lavado","Peaje","Colación","Reparación","Mantenimiento","Otro"};cat.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,cats));l.addView(monto);l.addView(desc);l.addView(cat);new AlertDialog.Builder(this).setTitle("Registrar egreso").setView(l).setNegativeButton("Cancelar",null).setPositiveButton("Guardar",(d,w)->{int n=parse(monto);if(n>0){db.addMovement("OUT",n,desc.getText().toString(),cat.getSelectedItem().toString(),driverId,vehicleId);amount="";showAmount();refreshTotals();toast("Egreso registrado");}}).show(); }
     void refreshTotals(){Calendar c=Calendar.getInstance();c.set(Calendar.HOUR_OF_DAY,0);c.set(Calendar.MINUTE,0);c.set(Calendar.SECOND,0);c.set(Calendar.MILLISECOND,0);long from=c.getTimeInMillis(),to=from+86400000L;int[] t=db.totals(from,to,0,0);totalsView.setText("HOY  +$"+fmt(t[0])+"   −$"+fmt(t[1])+"\nGANANCIA  $"+fmt(t[0]-t[1]));}
     void updateIdentity(){for(String[] r:db.drivers())if(Long.parseLong(r[0])==driverId){driverName=r[1];break;}for(String[] r:db.vehicles())if(Long.parseLong(r[0])==vehicleId){vehicleName=r[1];break;}identityView.setText("Conductor: "+driverName+"  |  "+vehicleName);}

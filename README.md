@@ -1,25 +1,16 @@
-# Taxi Caja v1
-Primera versión Android nativa para registrar ingresos y egresos de taxi.
+# Taxi Caja v1.1
 
-## Incluye
-- Teclado numérico siempre visible y registro rápido de ingresos.
-- 3 montos rápidos configurables.
-- Egresos con descripción y categoría.
-- Totales y ganancia del día.
-- Historial de movimientos.
-- Informes de día, semana y mes.
-- Conductores.
-- Móviles con número y patente.
-- Inicio/cierre de turno con kilometraje.
-- Mantenimiento por móvil/patente, próximo km/fecha y opción de contabilizar como egreso.
-- Base SQLite local: funciona sin internet.
+Aplicación Android para registrar ingresos y egresos de taxi, turnos y mantenimiento del móvil.
 
-## Abrir y generar APK
-Abrir la carpeta raíz con Android Studio. Esperar sincronización de Gradle y usar Build > Build APK(s).
-Requiere Android SDK 36. El proyecto usa minSdk 24 y targetSdk 36.
+## Cambios v1.1
+- Teclado visible con números grandes y negros.
+- Orden de calculadora: 7-8-9 / 4-5-6 / 1-2-3 / C-0-000.
+- Botón ⌫ para borrar el último dígito.
+- INGRESAR guarda de inmediato, actualiza los totales y vuelve a $0.
+- Aviso temporal no bloqueante con opción DESHACER durante 4 segundos.
+- Los montos rápidos solo cargan la cifra; para guardarla se debe pulsar INGRESAR.
+- Gradle 8.13 en GitHub Actions.
+- Cache de la firma debug para facilitar futuras actualizaciones desde GitHub Actions.
 
-## Nota
-Esta entrega es la v1 funcional. PDF/compartir, respaldo/restauración, PIN, metas, modo oscuro y estadísticas avanzadas quedan preparados para una siguiente iteración.
-
-## Generar APK automáticamente con GitHub
-El proyecto incluye `.github/workflows/build-apk.yml`. Al subirlo a un repositorio GitHub en la rama `main`, Actions compila `app-debug.apk` y lo deja como artefacto `TaxiCaja-v1-APK`.
+## Importante al instalar v1.1
+La v1.0 que se compiló antes de activar la conservación de la firma puede tener una firma diferente. Si Android no permite instalar v1.1 encima de v1.0, desinstala v1.0 una sola vez e instala v1.1. Desde v1.1, las compilaciones futuras intentarán conservar la misma firma mediante la cache de GitHub Actions.
